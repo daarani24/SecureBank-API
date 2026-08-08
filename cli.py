@@ -12,7 +12,10 @@ WITHDRAW="3"
 BALANCE="4"
 CLOSE="5"
 LIST_ALL="6"
-EXIT="7"
+TRANSFER="7"
+REVERSE="8"
+FIND_BY_NAME="9"
+EXIT="10"
 
 MENU="""
 =============================
@@ -24,7 +27,10 @@ MENU="""
 4. Check Balance
 5. Close Account
 6. List All Accounts
-7. Exit
+7. Transfer Money
+8. Reverse Last Transaction
+9. Find Accounts by Customer Name
+10. Exit
 =============================
 """
 
@@ -78,6 +84,30 @@ def run_cli():
                     for acc in accounts:
                         print(f"ID: {acc.id} | Name: {acc.customer_name} | Balance: Rs.{acc.balance:.2f}")
                     print("------------------------------------------------------\n")
+
+            elif choice==TRANSFER:
+                from_id=int(input("From Account ID: "))
+                to_id=int(input("To Account ID: "))
+                amount=float(input('Amount: '))
+                ledger.transfer(from_id, to_id, amount)
+                print(f"Transferred Rs.{amount:.2f} from {from_id} to {to_id} successfully.")
+
+            elif choice==REVERSE:
+                acc_id=int(input("Account ID: "))
+                ledger.reverse_last_transaction(acc_id)
+                new_balance=ledger.get_balance(acc_id)
+                print(f"Last transaction reversed. New Balance: Rs.{new_balance:.2f}")
+
+            elif choice==FIND_BY_NAME:
+                name=input("Customer name: ").strip()
+                accounts=ledger.get_accounts_by_customer(name)
+                if not accounts:
+                    print("No accounts found for that name.")
+                else:
+                    print(f"\n---------- Accounts for {name} ----------")
+                    for acc in accounts:
+                        print(f"ID: {acc.id} | Balance: Rs.{acc.balance:.2f}")
+                    print("--------------------------------------------\n")
 
             elif choice==EXIT:
                 print("Thank you for using SecureBank. Goodbye.")
