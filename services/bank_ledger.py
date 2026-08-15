@@ -12,12 +12,12 @@ class BankLedger:
         self.customer_index: dict[str, list[int]]=defaultdict(list)
 
     def create_account(self, customer_name):
-        clean_name=validate_customer_name(customer_name)
+        name=validate_customer_name(customer_name)
         account_id=self._next_account_id
         self._next_account_id+=1
-        account=Account(id=account_id, customer_name=clean_name)
+        account=Account(id=account_id, customer_name=name)
         self.accounts[account_id]=account
-        self.customer_index[clean_name].append(account_id)
+        self.customer_index[name].append(account_id)
         return account
 
     def get_account_by_id(self, account_id):
