@@ -1,4 +1,5 @@
 from services.bank_ledger import BankLedger
+from services.statement_service import accounts_sorted_by_id_bisect, accounts_sorted_by_balance
 from exceptions.bank_exceptions import (
     AccountNotFoundError,
     InsufficientFundsError,
@@ -15,7 +16,9 @@ LIST_ALL="6"
 TRANSFER="7"
 REVERSE="8"
 FIND_BY_NAME="9"
-EXIT="10"
+SORT_BY_ID = "10"
+SORT_BY_BALANCE = "11"
+EXIT="12"
 
 MENU="""
 =============================
@@ -30,7 +33,9 @@ MENU="""
 7. Transfer Money
 8. Reverse Last Transaction
 9. Find Accounts by Customer Name
-10. Exit
+10. Sort by ID
+11. Sort by Balance
+12. Exit
 =============================
 """
 
@@ -108,6 +113,20 @@ def run_cli():
                     for acc in accounts:
                         print(f"ID: {acc.id} | Balance: Rs.{acc.balance:.2f}")
                     print("--------------------------------------------\n")
+
+            elif choice==SORT_BY_ID:
+                accounts=accounts_sorted_by_id_bisect(ledger.accounts)
+                print("\n--- Accounts Sorted by ID ---")
+                for acc in accounts:
+                    print(f"ID: {acc.id} | Name: {acc.customer_name} | Balance: Rs.{acc.balance:.2f}")
+                print("-----------------------------\n")
+
+            elif choice==SORT_BY_BALANCE:
+                accounts=accounts_sorted_by_balance(ledger.accounts)
+                print("\n--- Accounts Sorted by Balance ---")
+                for acc in accounts:
+                    print(f"ID: {acc.id} | Name: {acc.customer_name} | Balance: Rs.{acc.balance:.2f}")
+                print("-----------------------------------\n")
 
             elif choice==EXIT:
                 print("Thank you for using SecureBank. Goodbye.")
