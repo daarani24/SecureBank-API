@@ -1,5 +1,6 @@
+from datetime import datetime
 from services.bank_ledger import BankLedger
-from services.statement_service import accounts_sorted_by_id_bisect, accounts_sorted_by_balance
+from services.statement_service import accounts_sorted_by_id_bisect, accounts_sorted_by_balance, get_statement, benchmark_insert_speed
 from exceptions.bank_exceptions import (
     AccountNotFoundError,
     InsufficientFundsError,
@@ -18,7 +19,9 @@ REVERSE="8"
 FIND_BY_NAME="9"
 SORT_BY_ID = "10"
 SORT_BY_BALANCE = "11"
-EXIT="12"
+STATEMENT = "12"
+BENCHMARK = "13"
+EXIT = "14"
 
 MENU="""
 =============================
@@ -35,7 +38,9 @@ MENU="""
 9. Find Accounts by Customer Name
 10. Sort by ID
 11. Sort by Balance
-12. Exit
+12. Account Statement (Date Range)
+13. Run Bisect vs SortedDict Benchmark
+14. Exit
 =============================
 """
 
@@ -127,6 +132,25 @@ def run_cli():
                 for acc in accounts:
                     print(f"ID: {acc.id} | Name: {acc.customer_name} | Balance: Rs.{acc.balance:.2f}")
                 print("-----------------------------------\n")
+
+            elif choice==STATEMENT:
+                acc_id=int(input("Account ID: "))
+                start_date=datetime.strptime(input("Start date (YYYY-MM-DD): "), "%Y-%m-%d")
+                end_date=datetime.strptime(input("End date (YYYY-MM-DD): "), "%Y-%m-%d")
+                txns=ledger.transaction_log[acc_id]
+                result=get_statement(txns, start_date, end_date)
+                if not result:
+                    print("No transactions in that range.")
+                else:
+                    print(f"\n--- Statement for Account {acc_id} ---")
+                    for txn in result:
+                        print(f"{txn.timestamp} | {txn.type} | Rs.{txn.amount:.2f}")
+                    print("--------------------------------\n")
+
+            elif choice==BENCHMARK:
+                print("\n--- Benchmark Report ---")
+                print(benchmark_insert_speed(5000))
+                print("------------------------\n")
 
             elif choice==EXIT:
                 print("Thank you for using SecureBank. Goodbye.")
