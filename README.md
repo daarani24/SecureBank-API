@@ -34,5 +34,15 @@ console app and evolves into a secured, production-style FastAPI service.
 - CLI support for transfer, reversal, and customer lookup
 - Invalid operations handled without crashing
 
+### Week 3 - Sorted Statements & Range Queries ✅
+- Sort accounts by account ID using `bisect.insort()`
+- Sort accounts by ID using `SortedDict`
+- Sort accounts by balance using `SortedDict`
+- Build sorted transaction history using `SortedDict`
+- Generate date-range statements using `SortedDict.irange()`
+- Handle duplicate timestamps using a tie-breaker
+- Benchmark `bisect.insort()` and `SortedDict` using `timeit`
+- Compare insertion performance with 5,000 entries
+
 ## Run
 python main.py
