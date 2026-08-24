@@ -5,11 +5,19 @@ from exceptions.bank_exceptions import AccountNotFoundError, InsufficientFundsEr
 from utils.validators import validate_amount, validate_customer_name
 
 class BankLedger:
-    def __init__(self):
+    def __init__(self, repository=None):
+        self.repository=repository
         self.accounts: dict[int, Account]={}
         self._next_account_id=1001
         self.transaction_log: dict[int, list[Transaction]]=defaultdict(list)
         self.customer_index: dict[str, list[int]]=defaultdict(list)
+
+        if self.repository:
+            for account in self.repository.list_all():
+                self.accounts[account.id]=account
+                self.customer_index[account.customer_name].append(account.id)
+                if account.id>=self._next_account_id:
+                    self._next_account_id=account.id+1
 
     def create_account(self, customer_name):
         name=validate_customer_name(customer_name)
@@ -18,6 +26,8 @@ class BankLedger:
         account=Account(id=account_id, customer_name=name)
         self.accounts[account_id]=account
         self.customer_index[name].append(account_id)
+        if self.repository:
+            self.repository.save(account)
         return account
 
     def get_account_by_id(self, account_id):
@@ -30,6 +40,8 @@ class BankLedger:
         account=self.get_account_by_id(account_id)
         account.balance+=amount
         self.transaction_log[account_id].append(Transaction("deposit", amount))
+        if self.repository:
+            self.repository.save(account)
         return account
 
     def withdraw(self, account_id, amount):
@@ -41,6 +53,8 @@ class BankLedger:
             )
         account.balance-=amount
         self.transaction_log[account_id].append(Transaction("withdraw", amount))
+        if self.repository:
+            self.repository.save(account)
         return account
 
     def transfer(self, from_id, to_id, amount):
@@ -77,6 +91,8 @@ class BankLedger:
     def close_account(self, account_id):
         self.get_account_by_id(account_id)
         del self.accounts[account_id]
+        if self.repository:
+            self.repository.delete(account_id)
 
     def list_accounts(self):
         return list(self.accounts.values())
