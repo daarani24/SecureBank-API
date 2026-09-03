@@ -44,8 +44,9 @@ MENU="""
 =============================
 """
 
-def run_cli():
-    ledger=BankLedger()
+def run_cli(ledger=None):
+    if ledger is None:
+        ledger=BankLedger()
     is_running=True
 
     while is_running:

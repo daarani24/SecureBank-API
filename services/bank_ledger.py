@@ -80,6 +80,8 @@ class BankLedger:
             account.balance-=last.amount
         elif last.type in ("withdraw", "transfer_out"):
             account.balance+=last.amount
+        if self.repository:
+            self.repository.save(account)
 
     def get_accounts_by_customer(self, customer_name):
         ids=self.customer_index.get(customer_name, [])
