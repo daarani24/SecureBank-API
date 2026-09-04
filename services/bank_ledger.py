@@ -3,10 +3,12 @@ from collections import defaultdict
 from models.account import Account, Transaction
 from exceptions.bank_exceptions import AccountNotFoundError, InsufficientFundsError
 from utils.validators import validate_amount, validate_customer_name
+from repositories.transaction_repository import TransactionRepository
 
 class BankLedger:
-    def __init__(self, repository=None):
+    def __init__(self, repository=None, transaction_repository:TransactionRepository|None=None):
         self.repository=repository
+        self.transaction_repository=transaction_repository
         self.accounts: dict[int, Account]={}
         self._next_account_id=1001
         self.transaction_log: dict[int, list[Transaction]]=defaultdict(list)
@@ -16,8 +18,14 @@ class BankLedger:
             for account in self.repository.list_all():
                 self.accounts[account.id]=account
                 self.customer_index[account.customer_name].append(account.id)
+
                 if account.id>=self._next_account_id:
                     self._next_account_id=account.id+1
+
+        if self.transaction_repository:
+            for account_id in self.accounts:
+                history=self.transaction_repository.get_by_account(account_id)
+                self.transaction_log[account_id].extend(history)
 
     def create_account(self, customer_name):
         name=validate_customer_name(customer_name)
@@ -39,7 +47,10 @@ class BankLedger:
         validate_amount(amount)
         account=self.get_account_by_id(account_id)
         account.balance+=amount
-        self.transaction_log[account_id].append(Transaction("deposit", amount))
+        transaction=Transaction("deposit", amount)
+        self.transaction_log[account_id].append(transaction)
+        self._save_transaction(account_id, transaction)
+
         if self.repository:
             self.repository.save(account)
         return account
@@ -52,36 +63,58 @@ class BankLedger:
                 f"Cannot withdraw {amount}, balance is {account.balance}"
             )
         account.balance-=amount
-        self.transaction_log[account_id].append(Transaction("withdraw", amount))
+        transaction=Transaction("withdraw", amount)
+        self.transaction_log[account_id].append(transaction)
+        self._save_transaction(account_id, transaction)
+
         if self.repository:
             self.repository.save(account)
         return account
 
     def transfer(self, from_id, to_id, amount):
         validate_amount(amount)
-        self.get_account_by_id(from_id)
-        self.get_account_by_id(to_id)
-        self.withdraw(from_id, amount)
-        try:
-            self.deposit(to_id, amount)
-        except Exception:
-            self.deposit(from_id, amount)
-            raise
-        self.transaction_log[from_id][-1]=Transaction("transfer_out", amount)
-        self.transaction_log[to_id][-1]=Transaction("transfer_in",amount)
+        from_account=self.get_account_by_id(from_id)
+        to_account=self.get_account_by_id(to_id)
+
+        if amount>from_account.balance:
+            raise InsufficientFundsError(
+                f"Cannot transfer {amount}, balance is {from_account.balance}"
+            )
+        from_account.balance-=amount
+        to_account.balance+=amount
+        outgoing=Transaction("transfer_out", amount)
+        incoming=Transaction("transfer_in", amount)
+
+        self.transaction_log[from_id].append(outgoing)
+        self.transaction_log[to_id].append(incoming)
+        self._save_transaction(from_id, outgoing)
+        self._save_transaction(to_id, incoming)
+
+        if self.repository:
+            self.repository.save(from_account)
+            self.repository.save(to_account)
 
     def reverse_last_transaction(self, account_id):
         history=self.transaction_log[account_id]
         if not history:
-            raise AccountNotFoundError(f"No transaction found for account {account_id}")
-        last=history.pop()
+            raise AccountNotFoundError(
+                f"No transaction found for account {account_id}"
+            )
+        last=history[-1]
         account=self.get_account_by_id(account_id)
+
         if last.type in ("deposit", "transfer_in"):
             account.balance-=last.amount
         elif last.type in ("withdraw", "transfer_out"):
             account.balance+=last.amount
+
+        reversal=Transaction("reversal", last.amount)
+        history.append(reversal)
+        self._save_transaction(account_id, reversal)
+
         if self.repository:
             self.repository.save(account)
+        return account
 
     def get_accounts_by_customer(self, customer_name):
         ids=self.customer_index.get(customer_name, [])
@@ -99,3 +132,6 @@ class BankLedger:
     def list_accounts(self):
         return list(self.accounts.values())
 
+    def _save_transaction(self, account_id, transaction):
+        if self.transaction_repository:
+            self.transaction_repository.save(account_id, transaction)
