@@ -96,11 +96,16 @@ class BankLedger:
 
     def reverse_last_transaction(self, account_id):
         history=self.transaction_log[account_id]
+
         if not history:
             raise AccountNotFoundError(
                 f"No transaction found for account {account_id}"
             )
         last=history[-1]
+        if last.type=="reversal":
+            raise AccountNotFoundError(
+                f"No transaction available to reverse for account {account_id}"
+            )
         account=self.get_account_by_id(account_id)
 
         if last.type in ("deposit", "transfer_in"):
